@@ -1,11 +1,26 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
-#define NUM_PARTICLES 10000
+#include <sys/time.h>
+
 #define NUM_ITERATIONS 10000
-#define TPB 32
 #define EPSILON 0.005
+
+int NUM_PARTICLES = 10000;
+int TPB = 32;
+
+unsigned long get_time();
+
+unsigned long get_time() {
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        unsigned long ret = tv.tv_usec;
+        ret /= 1000;
+        ret += (tv.tv_sec * 1000);
+        return ret;
+}
 
 struct Particle 
 { 
@@ -37,7 +52,7 @@ void inicializeRandNumbes(float3* randNumbers){
 }
 
 
-__global__ void performStepGPU(Particle* particles, float3* rand_vel_update, float dt=1.0)
+__global__ void performStepGPU(Particle* particles, float3* rand_vel_update, int NUM_PARTICLES, float dt=1.0)
 {
   const int p_id = blockIdx.x*blockDim.x + threadIdx.x;
 
@@ -80,8 +95,15 @@ bool equalFinalState(Particle* p1, Particle* p2){
 }
 
 
-int main()
+int main(int argc,  char** argv)
 {
+
+  NUM_PARTICLES = (argc >= 2) ? atoi(argv[1]) : 20000;
+  TPB = argc >= 3 ? atoi(argv[2]) : 128;
+
+  NUM_PARTICLES = 20000
+  TPB = 128
+
   // seed for random number
   srand (static_cast <unsigned> (time(0)));
 
@@ -93,21 +115,23 @@ int main()
   float3* randNumbers = (float3*) malloc (sizeof(float3)*NUM_PARTICLES);
   inicializeRandNumbes(randNumbers);
 
+
   // CPU execution
+  long start_time_cpu = get_time();
   Particle* particles_cpu = (Particle*) malloc (sizeof(Particle)*NUM_PARTICLES);
 
   // copy vector to use in the CPU
   std::memcpy(particles_cpu, particles, NUM_PARTICLES*sizeof(Particle));
 
-  printf("Computing particles moves on the CPU…");
+  printf("Computing particles system on the CPU…");
   for(int i = 0 ; i < NUM_ITERATIONS ; i++){
     performStepCPU(particles_cpu, randNumbers);
-    cudaDeviceSynchronize();
   }
   printf("Done\n");
-
+  long end_time_cpu = get_time();
 
   // GPU execution
+  long start_time_gpu = get_time();
   Particle* particles_gpu = 0;
   float3* randNumbers_gpu = 0;
 
@@ -124,20 +148,29 @@ int main()
 
   // Launch kernel to compute the final state of particles
   
-  printf("Computing particles moves on the GPU...");
+  printf("Computing particles system on the GPU...");
   for(int i = 0 ; i < NUM_ITERATIONS ; i++){
-    performStepGPU<<<(NUM_PARTICLES+TPB-1)/TPB, TPB>>>(particles_gpu, randNumbers_gpu);
-    //cudaDeviceSynchronize();
+    performStepGPU<<<(NUM_PARTICLES+TPB-1)/TPB, TPB>>>(particles_gpu, randNumbers_gpu, NUM_PARTICLES);
+    cudaDeviceSynchronize();
   }
   printf("Done\n");
 
   // Copy back from device to CPU
   cudaMemcpy(particles_gpu_res, particles_gpu, NUM_PARTICLES*sizeof(Particle), cudaMemcpyDeviceToHost);
-
+  long end_time_gpu = get_time();
 
   // Compare results
   printf("Comparing the output for each implementation…");
   equalFinalState(particles_gpu_res, particles_cpu) ? printf("Correct\n") : printf("Uncorrect\n");
+
+  printf("-----------------------------------------------\n");
+  printf("block size: %d  ;  NUM_PARTICLES: %d\n", TPB, NUM_PARTICLES);
+  printf("CPU time: %ld ms\n", end_time_cpu-start_time_cpu);
+  printf("GPU time: %ld ms\n", end_time_gpu-start_time_gpu);
+  printf("-----------------------------------------------\n");
+
+ // printf("%d %d %ld %ld\n", TPB, NUM_PARTICLES, end_time_cpu - start_time_cpu, end_time_gpu - start_time_gpu);
+
 
   // Free the memory
   cudaFree(particles_gpu);
@@ -148,5 +181,6 @@ int main()
   free(randNumbers);
   free(particles);
 
+  cudaDeviceReset();
   return 0;
 }
