@@ -181,6 +181,5 @@ int main(int argc,  char** argv)
   free(randNumbers);
   free(particles);
 
-  cudaDeviceReset();
   return 0;
 }
