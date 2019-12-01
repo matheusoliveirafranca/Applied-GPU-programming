@@ -132,13 +132,14 @@ int main(int argc,  char** argv)
   Particle* particles_gpu = 0;
   float3* randNumbers_gpu = 0;
 
-  Particle* particles_gpu_res = (Particle*) malloc (sizeof(Particle)*NUM_PARTICLES);
+  // Allocate host memory
+  Particle* particles_gpu_res = (Particle*) malloc (sizeof(Particle)*NUM_PARTICLES); // paged memory
+  // Particle* particles_gpu_res = NULL;
+  // cudaMallocHost(&particles_gpu_res, NUM_PARTICLES*sizeof(Particle)); // pinned memory
 
   // Allocate device memory
   cudaMalloc(&particles_gpu, NUM_PARTICLES*sizeof(Particle));
   cudaMalloc(&randNumbers_gpu, NUM_PARTICLES*sizeof(float3));
-  //cudaMallocHost(&particles_gpu, NUM_PARTICLES*sizeof(Particle));
-  //cudaMallocHost(&randNumbers_gpu, NUM_PARTICLES*sizeof(float3));
 
 
   // Copy array to device
@@ -146,10 +147,13 @@ int main(int argc,  char** argv)
   cudaMemcpy(particles_gpu, particles, NUM_PARTICLES*sizeof(Particle), cudaMemcpyHostToDevice);
 
   // Launch kernel to compute the final state of particles
-  
   printf("Computing particles system on the GPU...");
   for(int i = 0 ; i < NUM_ITERATIONS ; i++){
     
+    // Copy from host to device
+    if (i > 0)
+      cudaMemcpy(particles_gpu, particles_gpu_res, NUM_PARTICLES*sizeof(Particle), cudaMemcpyHostToDevice);
+
     performStepGPU<<<(NUM_PARTICLES+TPB-1)/TPB, TPB>>>(particles_gpu, randNumbers_gpu, NUM_PARTICLES);
     cudaDeviceSynchronize();
     
@@ -177,6 +181,7 @@ int main(int argc,  char** argv)
   // Free the memory
   cudaFree(particles_gpu);
   cudaFree(randNumbers_gpu);
+  // cudaFree(particles_gpu_res);
 
   free(particles_cpu);
   free(particles_gpu_res);
