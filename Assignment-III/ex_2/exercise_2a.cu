@@ -133,9 +133,9 @@ int main(int argc,  char** argv)
   float3* randNumbers_gpu = 0;
 
   // Allocate host memory
-  Particle* particles_gpu_res = (Particle*) malloc (sizeof(Particle)*NUM_PARTICLES); // paged memory
-  // Particle* particles_gpu_res = NULL;
-  // cudaMallocHost(&particles_gpu_res, NUM_PARTICLES*sizeof(Particle)); // pinned memory
+  // Particle* particles_gpu_res = (Particle*) malloc (sizeof(Particle)*NUM_PARTICLES); // paged memory
+  Particle* particles_gpu_res = NULL;
+  cudaMallocHost(&particles_gpu_res, NUM_PARTICLES*sizeof(Particle)); // pinned memory
 
   // Allocate device memory
   cudaMalloc(&particles_gpu, NUM_PARTICLES*sizeof(Particle));
@@ -181,10 +181,11 @@ int main(int argc,  char** argv)
   // Free the memory
   cudaFree(particles_gpu);
   cudaFree(randNumbers_gpu);
-  // cudaFree(particles_gpu_res);
+
+  cudaFree(particles_gpu_res); // pinned memory
+  // free(particles_gpu_res); // paged memory
 
   free(particles_cpu);
-  free(particles_gpu_res);
   free(randNumbers);
   free(particles);
 
