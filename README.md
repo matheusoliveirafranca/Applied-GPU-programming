@@ -39,4 +39,13 @@ for exercise_3:
  srun -n 1 ./exercise_3.out -s $size_matrix -v
 ```
 
+## Assigment IV
+
+To compile and run the mini weather application:
+
+```sh
+make
+mpirun -n 1 nvprof ./bin/miniWeather
+```
+
 
