@@ -70,8 +70,8 @@ __global__ void mover_PC_kernel(FPpart* part_x_gpu  , FPpart* part_y_gpu  , FPpa
                                 FPfield* Ex_flat_gpu , FPfield* Ey_flat_gpu , FPfield* Ez_flat_gpu ,
                                 FPfield* Bxn_flat_gpu, FPfield* Byn_flat_gpu, FPfield* Bzn_flat_gpu,
                                 FPfield* XN_flat_gpu , FPfield* YN_flat_gpu , FPfield* ZN_flat_gpu ,
-                                int nop   , int n_sub_cycles, int NiterMover, struct grid* grd, 
-                                struct parameters* param);
+                                int nop   , int n_sub_cycles, int NiterMover, int dt_sub_cycling, 
+                                int dto2, struct grid grd, struct parameters param);
 
 int mover_PC_gpu(struct particles* part, struct EMfield* field, struct grid* grd, struct parameters* param,
                  FPpart* part_x_gpu  , FPpart* part_y_gpu     , FPpart* part_z_gpu     , FPpart* part_u_gpu   , 

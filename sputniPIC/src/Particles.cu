@@ -79,15 +79,13 @@ __global__ void mover_PC_kernel(FPpart* part_x_gpu  , FPpart* part_y_gpu  , FPpa
                                 FPfield* Ex_flat_gpu , FPfield* Ey_flat_gpu , FPfield* Ez_flat_gpu ,
                                 FPfield* Bxn_flat_gpu, FPfield* Byn_flat_gpu, FPfield* Bzn_flat_gpu,
                                 FPfield* XN_flat_gpu , FPfield* YN_flat_gpu , FPfield* ZN_flat_gpu ,
-                                int nop   , int n_sub_cycles, int NiterMover, struct grid* grd, 
-                                struct parameters* param){
+                                int nop   , int n_sub_cycles, int NiterMover, int dt_sub_cycling, 
+                                int dto2, struct grid grd, struct parameters param){
     // thread ID
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i > nop) return;
 
     // auxiliary variables
-    FPpart dt_sub_cycling = (FPpart) param->dt/((double) n_sub_cycles);
-    FPpart dto2 = .5*dt_sub_cycling, qomdt2 = part->qom*dto2/param->c;
     FPpart omdtsq, denom, ut, vt, wt, udotb;
     
     // local (to the particle) electric and magnetic field
@@ -132,12 +130,12 @@ __global__ void mover_PC_kernel(FPpart* part_x_gpu  , FPpart* part_y_gpu  , FPpa
                 for (int ii=0; ii < 2; ii++)
                     for (int jj=0; jj < 2; jj++)
                         for(int kk=0; kk < 2; kk++){
-                            Exl += weight[ii][jj][kk]*Ex_flat_gpu[get_idx(ix- ii, iy -jj, iz- kk, grd.nyn, grd.nzn)];
-                            Eyl += weight[ii][jj][kk]*Ey_flat_gpu[get_idx(ix- ii, iy -jj, iz- kk, grd.nyn, grd.nzn)];
-                            Ezl += weight[ii][jj][kk]*Ez_flat_gpu[get_idx(ix- ii, iy -jj, iz- kk, grd.nyn, grd.nzn)];
-                            Bxl += weight[ii][jj][kk]*Bxn_flat_gpu[get_idx(ix- ii, iy -jj, iz- kk, grd.nyn, grd.nzn)];
-                            Byl += weight[ii][jj][kk]*Byn_flat_gpu[get_idx(ix- ii, iy -jj, iz- kk, grd.nyn, grd.nzn)];
-                            Bzl += weight[ii][jj][kk]*Bzn_flat_gpu[get_idx(ix- ii, iy -jj, iz- kk, grd.nyn, grd.nzn)];
+                            Exl += weight[ii][jj][kk]*Ex_flat_gpu[get_idx(ix- ii, iy -jj, iz- kk, grd->nyn, grd->nzn)];
+                            Eyl += weight[ii][jj][kk]*Ey_flat_gpu[get_idx(ix- ii, iy -jj, iz- kk, grd->nyn, grd->nzn)];
+                            Ezl += weight[ii][jj][kk]*Ez_flat_gpu[get_idx(ix- ii, iy -jj, iz- kk, grd->nyn, grd->nzn)];
+                            Bxl += weight[ii][jj][kk]*Bxn_flat_gpu[get_idx(ix- ii, iy -jj, iz- kk, grd->nyn, grd->nzn)];
+                            Byl += weight[ii][jj][kk]*Byn_flat_gpu[get_idx(ix- ii, iy -jj, iz- kk, grd->nyn, grd->nzn)];
+                            Bzl += weight[ii][jj][kk]*Bzn_flat_gpu[get_idx(ix- ii, iy -jj, iz- kk, grd->nyn, grd->nzn)];
                         }
                 
                 // end interpolation
@@ -245,6 +243,9 @@ int mover_PC_gpu(struct particles* part, struct EMfield* field, struct grid* grd
     // print species and subcycling
     std::cout << "***  MOVER with SUBCYCLYING "<< param->n_sub_cycles << " - species " << part->species_ID << " ***" << std::endl;
     
+    // auxiliary variables
+    FPpart dt_sub_cycling = (FPpart) param->dt/((double) n_sub_cycles);
+    FPpart dto2 = .5*dt_sub_cycling, qomdt2 = part->qom*dto2/param->c;
     int n_particles = part->nop;
 
     // Copy CPU arrays to GPU
@@ -264,17 +265,17 @@ int mover_PC_gpu(struct particles* part, struct EMfield* field, struct grid* grd
     cudaMemcpy(Byn_flat_gpu, field->Byn_flat, field_size * sizeof(FPfield), cudaMemcpyHostToDevice);
     cudaMemcpy(Bzn_flat_gpu, field->Bzn_flat, field_size * sizeof(FPfield), cudaMemcpyHostToDevice);
 
-    cudaMemcpy(XN_flat_gpu, grd->XN_flat, grdSize * sizeof(FPfield), cudaMemcpyHostToDevice);
-    cudaMemcpy(YN_flat_gpu, grd->YN_flat, grdSize * sizeof(FPfield), cudaMemcpyHostToDevice);
-    cudaMemcpy(ZN_flat_gpu, grd->ZN_flat, grdSize * sizeof(FPfield), cudaMemcpyHostToDevice);
+    cudaMemcpy(XN_flat_gpu, grd->XN_flat, grd_size * sizeof(FPfield), cudaMemcpyHostToDevice);
+    cudaMemcpy(YN_flat_gpu, grd->YN_flat, grd_size * sizeof(FPfield), cudaMemcpyHostToDevice);
+    cudaMemcpy(ZN_flat_gpu, grd->ZN_flat, grd_size * sizeof(FPfield), cudaMemcpyHostToDevice);
 
     mover_PC_kernel<<<(n_particles+TPB-1)/TPB, TPB>>>(part_x_gpu  , part_y_gpu  , part_z_gpu  ,
                                                       part_u_gpu  , part_v_gpu  , part_w_gpu  ,
                                                       Ex_flat_gpu , Ey_flat_gpu , Ez_flat_gpu ,
                                                       Bxn_flat_gpu, Byn_flat_gpu, Bzn_flat_gpu,
                                                       XN_flat_gpu , YN_flat_gpu , ZN_flat_gpu ,
-                                                      part->nop   , part->n_sub_cycles, part->NiterMover, 
-                                                      *grd, *param);
+                                                      part->nop   , part->n_sub_cycles, part->NiterMover,
+                                                      dt_sub_cycling, dto2, *grd, *param);
     cudaDeviceSynchronize();
 
     // Copy GPU arrays back to CPU
