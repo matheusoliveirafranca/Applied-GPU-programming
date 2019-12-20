@@ -31,6 +31,11 @@
 #include "RW_IO.h"
 
 
+#include <stdio.h>
+
+// Cuda
+#include <cuda.h>
+
 int main(int argc, char **argv){
     
     // Read the inputfile and fill the param structure
