@@ -73,7 +73,47 @@ int main(int argc, char **argv){
     
     // Initialization
     initGEM(&param,&grd,&field,&field_aux,part,ids);
-    
+
+
+
+    // **********************************************************//
+    // ********************** GPU allocation ********************//
+    // **********************************************************//
+
+    //Particle vars
+    FPpart* part_x_gpu, part_y_gpu, part_z_gpu;
+    FPpart* part_u_gpu, part_v_gpu, part_w_gpu;
+    //EMField vars
+    FPfield* Ex_gpu, Ey_gpu, Ez_gpu;
+    FPfield* Bxn_gpu, Byn_gpu, Bzn_gpu;
+    //Grd vars
+    FPfield* XN_gpu, YN_gpu, ZN_gpu;
+
+
+    int field_size = grd.nxn * grd.nyn * grd.nzn;
+    int grd_size   = grd.nxn * grd.nyn * grd.nzn;
+
+    // Allocate GPU memory
+    cudaMalloc(&part_x_gpu, part->npmax * sizeof(FPpart));
+    cudaMalloc(&part_y_gpu, part->npmax * sizeof(FPpart));
+    cudaMalloc(&part_z_gpu, part->npmax * sizeof(FPpart));
+    cudaMalloc(&part_u_gpu, part->npmax * sizeof(FPpart));
+    cudaMalloc(&part_v_gpu, part->npmax * sizeof(FPpart));
+    cudaMalloc(&part_w_gpu, part->npmax * sizeof(FPpart));
+
+    cudaMalloc(&Ex_gpu , field_size * sizeof(FPfield));
+    cudaMalloc(&Ey_gpu , field_size * sizeof(FPfield));
+    cudaMalloc(&Ez_gpu , field_size * sizeof(FPfield));
+    cudaMalloc(&Bxn_gpu, field_size * sizeof(FPfield));
+    cudaMalloc(&Byn_gpu, field_size * sizeof(FPfield));
+    cudaMalloc(&Bzn_gpu, field_size * sizeof(FPfield));
+
+    cudaMalloc(&XN_gpu, grd_size * sizeof(FPfield));
+    cudaMalloc(&YN_gpu, grd_size * sizeof(FPfield));
+    cudaMalloc(&ZN_gpu, grd_size * sizeof(FPfield));
+
+    // **********************************************************//
+
     
     // **********************************************************//
     // **** Start the Simulation!  Cycle index start from 1  *** //
@@ -89,11 +129,22 @@ int main(int argc, char **argv){
         setZeroDensities(&idn,ids,&grd,param.ns);
         
         
-        
         // implicit mover
         iMover = cpuSecond(); // start timer for mover
+
+        // **********************************************************//
+        // *********************** GPU Version **********************//
+        // **********************************************************//
+        loop_mover_PC_gpu(&part[is],&field,&grd,&param);
+
         for (int is=0; is < param.ns; is++)
-            mover_PC(&part[is],&field,&grd,&param);
+            // mover_PC_cpu(&part[is],&field,&grd,&param);
+            mover_PC_gpu(&part[is] , &field,&grd,     &param, part_x_gpu, part_y_gpu, part_z_gpu, 
+                         part_u_gpu, part_v_gpu , part_w_gpu, Ex_gpu    , Ey_gpu    , Ez_gpu    ,
+                         Bxn_gpu   , Byn_gpu    , Bzn_gpu   , XN_gpu    , YN_gpu    , ZN_gpu    ,
+                         field_size, grd_size);
+            
+        // **********************************************************//
         eMover += (cpuSecond() - iMover); // stop timer for mover
         
         
@@ -138,6 +189,25 @@ int main(int argc, char **argv){
         interp_dens_species_deallocate(&grd,&ids[is]);
         particle_deallocate(&part[is]);
     }
+
+    // GPU deallocate memory 
+    cudaFree(part_x_gpu);
+    cudaFree(part_y_gpu);
+    cudaFree(part_z_gpu);
+    cudaFree(part_u_gpu);
+    cudaFree(part_v_gpu);
+    cudaFree(part_w_gpu);
+
+    cudaFree(Ex_gpu);
+    cudaFree(Ey_gpu);
+    cudaFree(Ez_gpu);
+    cudaFree(Bxn_gpu);
+    cudaFree(Byn_gpu);
+    cudaFree(Bzn_gpu);
+
+    cudaFree(XN_gpu);
+    cudaFree(YN_gpu);
+    cudaFree(ZN_gpu);
     
     
     // stop timer
