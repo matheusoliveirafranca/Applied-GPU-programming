@@ -79,8 +79,8 @@ __global__ void mover_PC_kernel(FPpart* part_x_gpu  , FPpart* part_y_gpu  , FPpa
                                 FPfield* Ex_flat_gpu , FPfield* Ey_flat_gpu , FPfield* Ez_flat_gpu ,
                                 FPfield* Bxn_flat_gpu, FPfield* Byn_flat_gpu, FPfield* Bzn_flat_gpu,
                                 FPfield* XN_flat_gpu , FPfield* YN_flat_gpu , FPfield* ZN_flat_gpu ,
-                                int nop   , int n_sub_cycles, int NiterMover, int dt_sub_cycling, 
-                                int dto2, struct grid grd, struct parameters param){
+                                int nop   , int n_sub_cycles, int NiterMover, FPpart dt_sub_cycling, 
+                                FPpart dto2, FPpart qomdt2, struct grid grd, struct parameters param){
     // thread ID
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i > nop) return;
@@ -108,13 +108,13 @@ __global__ void mover_PC_kernel(FPpart* part_x_gpu  , FPpart* part_y_gpu  , FPpa
             // calculate the average velocity iteratively
             for(int innter=0; innter < NiterMover; innter++){
                 // interpolation G-->P
-                ix = 2 +  int((part_x_gpu[i] - grd->xStart)*grd->invdx);
+                ix = 2 +  int((part_x_gpu[i] - grd.xStart)*grd.invdx);
                 iy = 2 +  int((part_y_gpu[i] - grd->yStart)*grd->invdy);
                 iz = 2 +  int((part_z_gpu[i] - grd->zStart)*grd->invdz);
                 
                 // calculate weights
                 xi[0]   = part_x_gpu[i] - XN_flat_gpu[get_idx(ix - 1, iy, iz, grd->nyn, grd->nzn)];
-                eta[0]  = part_y_gpu[i] - YN_flat_gpu[get_idx(ix, iy - 1, iz, grd->nyn, grd->nzn])];
+                eta[0]  = part_y_gpu[i] - YN_flat_gpu[get_idx(ix, iy - 1, iz, grd->nyn, grd->nzn)];
                 zeta[0] = part_z_gpu[i] - ZN_flat_gpu[get_idx(ix, iy, iz - 1, grd->nyn, grd->nzn)];
                 xi[1]   = XN_flat_gpu[get_idx(ix, iy, iz, grd->nyn, grd->nzn)] - part_x_gpu[i];
                 eta[1]  = YN_flat_gpu[get_idx(ix, iy, iz, grd->nyn, grd->nzn)] - part_y_gpu[i];
@@ -202,7 +202,7 @@ __global__ void mover_PC_kernel(FPpart* part_x_gpu  , FPpart* part_y_gpu  , FPpa
                                                                         
             if (part_y_gpu[i] < 0){
                 if (param->PERIODICY==true){ // PERIODIC
-                    part_y_gpu[i] = part->y[i] + grd->Ly;
+                    part_y_gpu[i] = part_v_gpu[i] + grd->Ly;
                 } else { // REFLECTING BC
                     part_v_gpu[i] = -part_v_gpu[i];
                     part_y_gpu[i] = -part_y_gpu[i];
@@ -244,7 +244,7 @@ int mover_PC_gpu(struct particles* part, struct EMfield* field, struct grid* grd
     std::cout << "***  MOVER with SUBCYCLYING "<< param->n_sub_cycles << " - species " << part->species_ID << " ***" << std::endl;
     
     // auxiliary variables
-    FPpart dt_sub_cycling = (FPpart) param->dt/((double) n_sub_cycles);
+    FPpart dt_sub_cycling = (FPpart) param->dt/((double) part->n_sub_cycles);
     FPpart dto2 = .5*dt_sub_cycling, qomdt2 = part->qom*dto2/param->c;
     int n_particles = part->nop;
 
@@ -275,7 +275,7 @@ int mover_PC_gpu(struct particles* part, struct EMfield* field, struct grid* grd
                                                       Bxn_flat_gpu, Byn_flat_gpu, Bzn_flat_gpu,
                                                       XN_flat_gpu , YN_flat_gpu , ZN_flat_gpu ,
                                                       part->nop   , part->n_sub_cycles, part->NiterMover,
-                                                      dt_sub_cycling, dto2, *grd, *param);
+                                                      dt_sub_cycling, dto2, qomdt2, *grd, *param);
     cudaDeviceSynchronize();
 
     // Copy GPU arrays back to CPU

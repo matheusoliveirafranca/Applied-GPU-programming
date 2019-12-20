@@ -108,7 +108,7 @@ int main(int argc, char **argv){
     cudaMalloc(&Byn_gpu, field_size * sizeof(FPfield));
     cudaMalloc(&Bzn_gpu, field_size * sizeof(FPfield));
 
-    cudaMalloc(&XN_gpu, grd_size * sizeof(FPfield));
+    cudaMalloc(&XN_gpu, grd_size * sizeof(FPfield));    
     cudaMalloc(&YN_gpu, grd_size * sizeof(FPfield));
     cudaMalloc(&ZN_gpu, grd_size * sizeof(FPfield));
 
