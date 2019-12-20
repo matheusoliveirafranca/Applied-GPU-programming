@@ -86,13 +86,13 @@ int main(int argc, char **argv){
     // **********************************************************//
 
     //Particle vars
-    FPpart* part_x_gpu, part_y_gpu, part_z_gpu;
-    FPpart* part_u_gpu, part_v_gpu, part_w_gpu;
+    FPpart *part_x_gpu, *part_y_gpu, *part_z_gpu;
+    FPpart *part_u_gpu, *part_v_gpu, *part_w_gpu;
     //EMField vars
-    FPfield* Ex_gpu, Ey_gpu, Ez_gpu;
-    FPfield* Bxn_gpu, Byn_gpu, Bzn_gpu;
+    FPfield *Ex_gpu , *Ey_gpu, *Ez_gpu;
+    FPfield *Bxn_gpu,*Byn_gpu,*Bzn_gpu;
     //Grd vars
-    FPfield* XN_gpu, YN_gpu, ZN_gpu;
+    FPfield *XN_gpu, *YN_gpu, *ZN_gpu;
 
 
     int field_size = grd.nxn * grd.nyn * grd.nzn;
