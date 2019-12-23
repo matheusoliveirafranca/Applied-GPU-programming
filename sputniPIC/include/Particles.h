@@ -81,18 +81,20 @@ int mover_PC_gpu(struct particles* part, struct EMfield* field, struct grid* grd
 
 __global__ void interpP2G_kernel(FPpart* part_x_gpu   , FPpart* part_y_gpu   , FPpart* part_z_gpu  ,
                                  FPpart* part_u_gpu   , FPpart* part_v_gpu   , FPpart* part_w_gpu  ,
-                                 FPfield* XN_flat_gpu , FPfield* YN_flat_gpu , FPfield* ZN_flat_gpu,
-                                 FPinterp *rhon_gpu   , FPinterp *rhoc_gpu   , FPinterp *Jx_gpu    , 
-                                 FPinterp *Jy_gpu     , FPinterp *Jz_gpu     , FPinterp *pxx_gpu   , 
-                                 FPinterp *pxy_gpu    , FPinterp *pxz_gpu    , FPinterp *pyy_gpu   , 
-                                 FPinterp *pyz_gpu    , FPinterp *pzz_gpu    , int nop  , struct grid grd);
+                                 FPinterp *part_q_gpu , FPfield* XN_flat_gpu , FPfield* YN_flat_gpu, 
+                                 FPfield* ZN_flat_gpu , FPinterp *rhon_gpu   , FPinterp *rhoc_gpu  , 
+                                 FPinterp *Jx_gpu     , FPinterp *Jy_gpu     , FPinterp *Jz_gpu    , 
+                                 FPinterp *pxx_gpu    , FPinterp *pxy_gpu    , FPinterp *pxz_gpu   , 
+                                 FPinterp *pyy_gpu    , FPinterp *pyz_gpu    , FPinterp *pzz_gpu   , 
+                                 int nop  , struct grid grd);
 
-void interpP2G_gpu(struct particles* part , struct interpDensSpecies* ids, struct grid* grd, FPpart* part_x_gpu, 
-                    FPpart* part_y_gpu    , FPpart* part_z_gpu     , FPpart* part_u_gpu   , FPpart* part_v_gpu, 
-                    FPpart* part_w_gpu    , FPfield* Ex_flat_gpu   , FPfield* Ey_flat_gpu , FPinterp *Jx_gpu  , 
-                    FPinterp *Jy_gpu      , FPinterp *Jz_gpu       , FPinterp *pxx_gpu    , FPinterp *pxy_gpu , 
-                    FPinterp *pxz_gpu     , FPinterp *pyy_gpu      , FPinterp *pyz_gpu    , FPinterp *pzz_gpu ,
-                    FPinterp *rhon_gpu    , FPinterp *rhoc_gpu     , int grd_size);
+void interpP2G_gpu(struct particles* part , struct interpDensSpecies* ids, struct grid* grd, FPpart* part_x_gpu  , 
+                    FPpart* part_y_gpu    , FPpart* part_z_gpu     , FPpart* part_u_gpu    , FPpart* part_v_gpu  , 
+                    FPpart* part_w_gpu    , FPinterp *part_q_gpu   , FPinterp *Jx_gpu      , FPinterp *Jy_gpu    , 
+                    FPinterp *Jz_gpu      , FPinterp *pxx_gpu      , FPinterp *pxy_gpu     , FPinterp *pxz_gpu   , 
+                    FPinterp *pyy_gpu     , FPinterp *pyz_gpu      , FPinterp *pzz_gpu     , FPinterp *rhon_gpu  , 
+                    FPinterp *rhoc_gpu    , FPfield* XN_flat_gpu   , FPfield* YN_flat_gpu  , FPfield* ZN_flat_gpu, 
+                    int grd_size);
 
 
 #endif

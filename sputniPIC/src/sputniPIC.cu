@@ -88,6 +88,7 @@ int main(int argc, char **argv){
     //Particle vars
     FPpart *part_x_gpu; FPpart *part_y_gpu; FPpart *part_z_gpu;
     FPpart *part_u_gpu; FPpart *part_v_gpu; FPpart *part_w_gpu;
+    FPinterp* part_q_gpu;
     //EMField vars
     FPfield *Ex_gpu ; FPfield *Ey_gpu ; FPfield *Ez_gpu;
     FPfield *Bxn_gpu; FPfield *Byn_gpu; FPfield *Bzn_gpu;
@@ -110,6 +111,8 @@ int main(int argc, char **argv){
     cudaMalloc(&part_u_gpu, part->npmax * sizeof(FPpart));
     cudaMalloc(&part_v_gpu, part->npmax * sizeof(FPpart));
     cudaMalloc(&part_w_gpu, part->npmax * sizeof(FPpart));
+
+    cudaMalloc(&part_q_gpu, part->npmax * sizeof(FPinterp));
 
     cudaMalloc(&Ex_gpu , field_size * sizeof(FPfield));
     cudaMalloc(&Ey_gpu , field_size * sizeof(FPfield));
@@ -178,10 +181,11 @@ int main(int argc, char **argv){
         // interpolate species
         for (int is=0; is < param.ns; is++)
             // interpP2G_cpu(&part[is],&ids[is],&grd);
-            interpP2G_gpu(&part[is] , &ids[is]   , &grd       , part_x_gpu, part_y_gpu, part_z_gpu, 
-                         part_u_gpu , part_v_gpu , part_w_gpu , Jx_gpu    , Jy_gpu    , Jz_gpu    , 
-                         pxx_gpu    , pxy_gpu    , pxz_gpu    , pyy_gpu   , pyz_gpu   , pzz_gpu   , 
-                         rhon_gpu   , rhoc_gpu   , XN_flat_gpu, YN_flat_gpu, ZN_flat_gpu, grd_size);
+            interpP2G_gpu(&part[is] , &ids[is]   , &grd       , part_x_gpu , part_y_gpu , part_z_gpu , 
+                         part_u_gpu , part_v_gpu , part_w_gpu , part_q_gpu , Jx_gpu     , Jy_gpu     , 
+                         Jz_gpu     , pxx_gpu    , pxy_gpu    , pxz_gpu    , pyy_gpu    , pyz_gpu    , 
+                         pzz_gpu    , rhon_gpu   , rhoc_gpu   , XN_flat_gpu, YN_flat_gpu, ZN_flat_gpu, 
+                         grd_size);
         // apply BC to interpolated densities
         for (int is=0; is < param.ns; is++)
             applyBCids(&ids[is],&grd,&param);

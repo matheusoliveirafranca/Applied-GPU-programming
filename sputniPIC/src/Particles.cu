@@ -625,11 +625,12 @@ void interpP2G_cpu(struct particles* part, struct interpDensSpecies* ids, struct
 
 __global__ void interpP2G_kernel(FPpart* part_x_gpu   , FPpart* part_y_gpu   , FPpart* part_z_gpu  ,
                                  FPpart* part_u_gpu   , FPpart* part_v_gpu   , FPpart* part_w_gpu  ,
-                                 FPfield* XN_flat_gpu , FPfield* YN_flat_gpu , FPfield* ZN_flat_gpu,
-                                 FPinterp *rhon_gpu   , FPinterp *rhoc_gpu   , FPinterp *Jx_gpu    , 
-                                 FPinterp *Jy_gpu     , FPinterp *Jz_gpu     , FPinterp *pxx_gpu   , 
-                                 FPinterp *pxy_gpu    , FPinterp *pxz_gpu    , FPinterp *pyy_gpu   , 
-                                 FPinterp *pyz_gpu    , FPinterp *pzz_gpu    , int nop  , struct grid grd)
+                                 FPinterp *part_q_gpu , FPfield* XN_flat_gpu , FPfield* YN_flat_gpu, 
+                                 FPfield* ZN_flat_gpu , FPinterp *rhon_gpu   , FPinterp *rhoc_gpu  , 
+                                 FPinterp *Jx_gpu     , FPinterp *Jy_gpu     , FPinterp *Jz_gpu    , 
+                                 FPinterp *pxx_gpu    , FPinterp *pxy_gpu    , FPinterp *pxz_gpu   , 
+                                 FPinterp *pyy_gpu    , FPinterp *pyz_gpu    , FPinterp *pzz_gpu   , 
+                                 int nop  , struct grid grd)
 {
 
     // thread ID
@@ -661,7 +662,7 @@ __global__ void interpP2G_kernel(FPpart* part_x_gpu   , FPpart* part_y_gpu   , F
     for (int ii = 0; ii < 2; ii++)
         for (int jj = 0; jj < 2; jj++)
             for (int kk = 0; kk < 2; kk++)
-                weight[ii][jj][kk] = part.q[i] * xi[ii] * eta[jj] * zeta[kk] * grd.invVOL;
+                weight[ii][jj][kk] = part_q_gpu[i] * xi[ii] * eta[jj] * zeta[kk] * grd.invVOL;
     
     //////////////////////////
     // add charge density
@@ -676,7 +677,7 @@ __global__ void interpP2G_kernel(FPpart* part_x_gpu   , FPpart* part_y_gpu   , F
     for (int ii = 0; ii < 2; ii++)
         for (int jj = 0; jj < 2; jj++)
             for (int kk = 0; kk < 2; kk++)
-                temp[ii][jj][kk] = part->u[i] * weight[ii][jj][kk];
+                temp[ii][jj][kk] = part_u_gpu[i] * weight[ii][jj][kk];
     
     for (int ii = 0; ii < 2; ii++)
         for (int jj = 0; jj < 2; jj++)
@@ -689,7 +690,7 @@ __global__ void interpP2G_kernel(FPpart* part_x_gpu   , FPpart* part_y_gpu   , F
     for (int ii = 0; ii < 2; ii++)
         for (int jj = 0; jj < 2; jj++)
             for (int kk = 0; kk < 2; kk++)
-                temp[ii][jj][kk] = part->v[i] * weight[ii][jj][kk];
+                temp[ii][jj][kk] = part_v_gpu[i] * weight[ii][jj][kk];
     for (int ii = 0; ii < 2; ii++)
         for (int jj = 0; jj < 2; jj++)
             for (int kk = 0; kk < 2; kk++)
@@ -703,7 +704,7 @@ __global__ void interpP2G_kernel(FPpart* part_x_gpu   , FPpart* part_y_gpu   , F
     for (int ii = 0; ii < 2; ii++)
         for (int jj = 0; jj < 2; jj++)
             for (int kk = 0; kk < 2; kk++)
-                temp[ii][jj][kk] = part->w[i] * weight[ii][jj][kk];
+                temp[ii][jj][kk] = part_w_gpu[i] * weight[ii][jj][kk];
     for (int ii = 0; ii < 2; ii++)
         for (int jj = 0; jj < 2; jj++)
             for (int kk = 0; kk < 2; kk++)
@@ -715,7 +716,7 @@ __global__ void interpP2G_kernel(FPpart* part_x_gpu   , FPpart* part_y_gpu   , F
     for (int ii = 0; ii < 2; ii++)
         for (int jj = 0; jj < 2; jj++)
             for (int kk = 0; kk < 2; kk++)
-                temp[ii][jj][kk] = part->u[i] * part->u[i] * weight[ii][jj][kk];
+                temp[ii][jj][kk] = part_u_gpu[i] * part_u_gpu[i] * weight[ii][jj][kk];
     for (int ii = 0; ii < 2; ii++)
         for (int jj = 0; jj < 2; jj++)
             for (int kk = 0; kk < 2; kk++)
@@ -728,7 +729,7 @@ __global__ void interpP2G_kernel(FPpart* part_x_gpu   , FPpart* part_y_gpu   , F
     for (int ii = 0; ii < 2; ii++)
         for (int jj = 0; jj < 2; jj++)
             for (int kk = 0; kk < 2; kk++)
-                temp[ii][jj][kk] = part->u[i] * part->v[i] * weight[ii][jj][kk];
+                temp[ii][jj][kk] = part_u_gpu[i] * part_v_gpu[i] * weight[ii][jj][kk];
     for (int ii = 0; ii < 2; ii++)
         for (int jj = 0; jj < 2; jj++)
             for (int kk = 0; kk < 2; kk++)
@@ -741,7 +742,7 @@ __global__ void interpP2G_kernel(FPpart* part_x_gpu   , FPpart* part_y_gpu   , F
     for (int ii = 0; ii < 2; ii++)
         for (int jj = 0; jj < 2; jj++)
             for (int kk = 0; kk < 2; kk++)
-                temp[ii][jj][kk] = part->u[i] * part->w[i] * weight[ii][jj][kk];
+                temp[ii][jj][kk] = part_u_gpu[i] * part_w_gpu[i] * weight[ii][jj][kk];
     for (int ii = 0; ii < 2; ii++)
         for (int jj = 0; jj < 2; jj++)
             for (int kk = 0; kk < 2; kk++)
@@ -753,7 +754,7 @@ __global__ void interpP2G_kernel(FPpart* part_x_gpu   , FPpart* part_y_gpu   , F
     for (int ii = 0; ii < 2; ii++)
         for (int jj = 0; jj < 2; jj++)
             for (int kk = 0; kk < 2; kk++)
-                temp[ii][jj][kk] = part->v[i] * part->v[i] * weight[ii][jj][kk];
+                temp[ii][jj][kk] = part_v_gpu[i] * part_v_gpu[i] * weight[ii][jj][kk];
     for (int ii = 0; ii < 2; ii++)
         for (int jj = 0; jj < 2; jj++)
             for (int kk = 0; kk < 2; kk++)
@@ -765,7 +766,7 @@ __global__ void interpP2G_kernel(FPpart* part_x_gpu   , FPpart* part_y_gpu   , F
     for (int ii = 0; ii < 2; ii++)
         for (int jj = 0; jj < 2; jj++)
             for (int kk = 0; kk < 2; kk++)
-                temp[ii][jj][kk] = part->v[i] * part->w[i] * weight[ii][jj][kk];
+                temp[ii][jj][kk] = part_v_gpu[i] * part_w_gpu[i] * weight[ii][jj][kk];
     for (int ii = 0; ii < 2; ii++)
         for (int jj = 0; jj < 2; jj++)
             for (int kk = 0; kk < 2; kk++)
@@ -777,7 +778,7 @@ __global__ void interpP2G_kernel(FPpart* part_x_gpu   , FPpart* part_y_gpu   , F
     for (int ii = 0; ii < 2; ii++)
         for (int jj = 0; jj < 2; jj++)
             for (int kk = 0; kk < 2; kk++)
-                temp[ii][jj][kk] = part->w[i] * part->w[i] * weight[ii][jj][kk];
+                temp[ii][jj][kk] = part_w_gpu[i] * part_w_gpu[i] * weight[ii][jj][kk];
     for (int ii=0; ii < 2; ii++)
         for (int jj=0; jj < 2; jj++)
             for(int kk=0; kk < 2; kk++)
@@ -785,18 +786,19 @@ __global__ void interpP2G_kernel(FPpart* part_x_gpu   , FPpart* part_y_gpu   , F
     
 }
 
-void interpP2G_gpu(struct particles* part , struct interpDensSpecies* ids, struct grid* grd, FPpart* part_x_gpu, 
-                    FPpart* part_y_gpu    , FPpart* part_z_gpu     , FPpart* part_u_gpu    , FPpart* part_v_gpu, 
-                    FPpart* part_w_gpu    , FPinterp *Jx_gpu       , FPinterp *Jy_gpu      , FPinterp *Jz_gpu  , 
-                    FPinterp *pxx_gpu     , FPinterp *pxy_gpu      , FPinterp *pxz_gpu     , FPinterp *pyy_gpu , 
-                    FPinterp *pyz_gpu     , FPinterp *pzz_gpu      , FPinterp *rhon_gpu    , FPinterp *rhoc_gpu, 
-                    FPfield* XN_flat_gpu  , FPfield* YN_flat_gpu,  , FPfield* ZN_flat_gpu  , int grd_size){
+void interpP2G_gpu(struct particles* part , struct interpDensSpecies* ids, struct grid* grd, FPpart* part_x_gpu  , 
+                    FPpart* part_y_gpu    , FPpart* part_z_gpu     , FPpart* part_u_gpu    , FPpart* part_v_gpu  , 
+                    FPpart* part_w_gpu    , FPinterp *part_q_gpu   , FPinterp *Jx_gpu      , FPinterp *Jy_gpu    , 
+                    FPinterp *Jz_gpu      , FPinterp *pxx_gpu      , FPinterp *pxy_gpu     , FPinterp *pxz_gpu   , 
+                    FPinterp *pyy_gpu     , FPinterp *pyz_gpu      , FPinterp *pzz_gpu     , FPinterp *rhon_gpu  , 
+                    FPinterp *rhoc_gpu    , FPfield* XN_flat_gpu   , FPfield* YN_flat_gpu  , FPfield* ZN_flat_gpu, 
+                    int grd_size){
 
     int n_particles = part->nop;
 
     // Copy CPU arrays to GPU
-    cudaMemcpy(rhon_gpu, ids->rhon_flat, grd_size * sizeof(FPinterp), cudaMemcpyHostToDevice)
-    cudaMemcpy(rhoc_gpu, ids->rhoc_flat, grd_size * sizeof(FPinterp), cudaMemcpyHostToDevice)
+    cudaMemcpy(rhon_gpu, ids->rhon_flat, grd_size * sizeof(FPinterp), cudaMemcpyHostToDevice);
+    cudaMemcpy(rhoc_gpu, ids->rhoc_flat, grd_size * sizeof(FPinterp), cudaMemcpyHostToDevice);
 
     cudaMemcpy(Jx_gpu, ids->Jx_flat, grd_size * sizeof(FPinterp), cudaMemcpyHostToDevice);
     cudaMemcpy(Jy_gpu, ids->Jy_flat, grd_size * sizeof(FPinterp), cudaMemcpyHostToDevice);
@@ -810,13 +812,13 @@ void interpP2G_gpu(struct particles* part , struct interpDensSpecies* ids, struc
     cudaMemcpy(pzz_gpu, ids->pzz_flat, grd_size * sizeof(FPinterp), cudaMemcpyHostToDevice);
 
     interpP2G_kernel<<<(n_particles+TPB-1)/TPB, TPB>>>(part_x_gpu  , part_y_gpu  , part_z_gpu  ,
-                                                       part_u_gpu  , part_v_gpu  , part_w_gpu  ,
-                                                       Jx_gpu      , Jy_gpu      , Jz_gpu      ,
-                                                       pxx_gpu     , pxy_gpu     , pxz_gpu     ,
-                                                       pyy_gpu     , pyz_gpu     , pzz_gpu     ,
-                                                       rhon_gpu    , rhoc_gpu    , XN_flat_gpu , 
-                                                       YN_flat_gpu , ZN_flat_gpu , part->nop   ,
-                                                       *grd);
+                                                       part_u_gpu  , part_v_gpu  , part_w_gpu  , 
+                                                       part_q_gpu  , Jx_gpu      , Jy_gpu      , 
+                                                       Jz_gpu      , pxx_gpu     , pxy_gpu     , 
+                                                       pxz_gpu     , pyy_gpu     , pyz_gpu     , 
+                                                       pzz_gpu     , rhon_gpu    , rhoc_gpu    , 
+                                                       XN_flat_gpu , YN_flat_gpu , ZN_flat_gpu , 
+                                                       part->nop   , *grd);
     cudaDeviceSynchronize();
 
     // Copy GPU arrays back to CPU
