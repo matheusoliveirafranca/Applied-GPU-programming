@@ -237,11 +237,12 @@ __global__ void mover_PC_kernel(FPpart* part_x_gpu  , FPpart* part_y_gpu  , FPpa
 
 
 /** particle mover GPU */
-int mover_PC_gpu(struct particles* part, struct EMfield* field, struct grid* grd, struct parameters* param,
+int mover_PC_gpu(struct particles* part, struct EMfield* field, struct grid* grd, struct parameters* param    ,
                  FPpart* part_x_gpu  , FPpart* part_y_gpu     , FPpart* part_z_gpu     , FPpart* part_u_gpu   , 
                  FPpart* part_v_gpu  , FPpart* part_w_gpu     , FPfield* Ex_flat_gpu   , FPfield* Ey_flat_gpu , 
                  FPfield* Ez_flat_gpu, FPfield* Bxn_flat_gpu  , FPfield* Byn_flat_gpu  , FPfield* Bzn_flat_gpu, 
-                 FPfield* XN_flat_gpu, FPfield* YN_flat_gpu   , FPfield* ZN_flat_gpu   , int field_size    , int grd_size){
+                 FPfield* XN_flat_gpu, FPfield* YN_flat_gpu   , FPfield* ZN_flat_gpu   , int field_size , int grd_size)
+{
     // print species and subcycling
     std::cout << "***  MOVER with SUBCYCLYING "<< param->n_sub_cycles << " - species " << part->species_ID << " ***" << std::endl;
     
@@ -467,9 +468,9 @@ int mover_PC_cpu(struct particles* part, struct EMfield* field, struct grid* grd
 
 
 /** Interpolation Particle --> Grid: This is for species */
-void interpP2G(struct particles* part, struct interpDensSpecies* ids, struct grid* grd)
+void interpP2G_cpu(struct particles* part, struct interpDensSpecies* ids, struct grid* grd)
 {
-    
+
     // arrays needed for interpolation
     FPpart weight[2][2][2];
     FPpart temp[2][2][2];
@@ -620,4 +621,216 @@ void interpP2G(struct particles* part, struct interpDensSpecies* ids, struct gri
     
     }
    
+}
+
+__global__ void interpP2G_kernel(FPpart* part_x_gpu   , FPpart* part_y_gpu   , FPpart* part_z_gpu  ,
+                                 FPpart* part_u_gpu   , FPpart* part_v_gpu   , FPpart* part_w_gpu  ,
+                                 FPfield* XN_flat_gpu , FPfield* YN_flat_gpu , FPfield* ZN_flat_gpu,
+                                 FPinterp *rhon_gpu   , FPinterp *rhoc_gpu   , FPinterp *Jx_gpu    , 
+                                 FPinterp *Jy_gpu     , FPinterp *Jz_gpu     , FPinterp *pxx_gpu   , 
+                                 FPinterp *pxy_gpu    , FPinterp *pxz_gpu    , FPinterp *pyy_gpu   , 
+                                 FPinterp *pyz_gpu    , FPinterp *pzz_gpu    , int nop  , struct grid grd)
+{
+
+    // thread ID
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i > nop) return;
+
+        // arrays needed for interpolation
+    FPpart weight[2][2][2];
+    FPpart temp[2][2][2];
+    FPpart xi[2], eta[2], zeta[2];
+    
+    // index of the cell
+    int ix, iy, iz;
+        
+    // determine cell: can we change to int()? is it faster?
+    ix = 2 + int (floor((part_x_gpu[i] - grd.xStart) * grd.invdx));
+    iy = 2 + int (floor((part_y_gpu[i] - grd.yStart) * grd.invdy));
+    iz = 2 + int (floor((part_z_gpu[i] - grd.zStart) * grd.invdz));
+    
+    // distances from node
+    xi[0]   = part_x_gpu[i] - XN_flat_gpu[get_idx(ix - 1, iy, iz, grd.nyn, grd.nzn)];
+    eta[0]  = part_y_gpu[i] - YN_flat_gpu[get_idx(ix, iy - 1, iz, grd.nyn, grd.nzn)];
+    zeta[0] = part_z_gpu[i] - ZN_flat_gpu[get_idx(ix, iz, iz - 1, grd.nyn, grd.nzn)];
+    xi[1]   = XN_flat_gpu[get_idx(ix, iy, iz, grd.nyn, grd.nzn)] - part_x_gpu[i];
+    eta[1]  = YN_flat_gpu[get_idx(ix, iy, iz, grd.nyn, grd.nzn)] - part_y_gpu[i];
+    zeta[1] = ZN_flat_gpu[get_idx(ix, iy, iz, grd.nyn, grd.nzn)] - part_z_gpu[i];
+    
+    // calculate the weights for different nodes
+    for (int ii = 0; ii < 2; ii++)
+        for (int jj = 0; jj < 2; jj++)
+            for (int kk = 0; kk < 2; kk++)
+                weight[ii][jj][kk] = part.q[i] * xi[ii] * eta[jj] * zeta[kk] * grd.invVOL;
+    
+    //////////////////////////
+    // add charge density
+    for (int ii = 0; ii < 2; ii++)
+        for (int jj = 0; jj < 2; jj++)
+            for (int kk = 0; kk < 2; kk++)
+                atomicAdd(&rhon_gpu[get_idx(ix-ii, iy-jj, iz-kk, grd.nyn, grd.nzn)], weight[ii][jj][kk] * grd.invVOL);
+    
+    
+    ////////////////////////////
+    // add current density - Jx
+    for (int ii = 0; ii < 2; ii++)
+        for (int jj = 0; jj < 2; jj++)
+            for (int kk = 0; kk < 2; kk++)
+                temp[ii][jj][kk] = part->u[i] * weight[ii][jj][kk];
+    
+    for (int ii = 0; ii < 2; ii++)
+        for (int jj = 0; jj < 2; jj++)
+            for (int kk = 0; kk < 2; kk++)
+                atomicAdd(&Jx_gpu[get_idx(ix-ii, iy-jj, iz-kk, grd.nyn, grd.nzn)], weight[ii][jj][kk] * grd.invVOL);
+    
+    
+    ////////////////////////////
+    // add current density - Jy
+    for (int ii = 0; ii < 2; ii++)
+        for (int jj = 0; jj < 2; jj++)
+            for (int kk = 0; kk < 2; kk++)
+                temp[ii][jj][kk] = part->v[i] * weight[ii][jj][kk];
+    for (int ii = 0; ii < 2; ii++)
+        for (int jj = 0; jj < 2; jj++)
+            for (int kk = 0; kk < 2; kk++)
+                atomicAdd(&Jy_gpu[get_idx(ix-ii, iy-jj, iz-kk, grd.nyn, grd.nzn)], weight[ii][jj][kk] * grd.invVOL);
+
+    
+    
+    
+    ////////////////////////////
+    // add current density - Jz
+    for (int ii = 0; ii < 2; ii++)
+        for (int jj = 0; jj < 2; jj++)
+            for (int kk = 0; kk < 2; kk++)
+                temp[ii][jj][kk] = part->w[i] * weight[ii][jj][kk];
+    for (int ii = 0; ii < 2; ii++)
+        for (int jj = 0; jj < 2; jj++)
+            for (int kk = 0; kk < 2; kk++)
+                atomicAdd(&Jz_gpu[get_idx(ix-ii, iy-jj, iz-kk, grd.nyn, grd.nzn)], weight[ii][jj][kk] * grd.invVOL);
+    
+    
+    ////////////////////////////
+    // add pressure pxx
+    for (int ii = 0; ii < 2; ii++)
+        for (int jj = 0; jj < 2; jj++)
+            for (int kk = 0; kk < 2; kk++)
+                temp[ii][jj][kk] = part->u[i] * part->u[i] * weight[ii][jj][kk];
+    for (int ii = 0; ii < 2; ii++)
+        for (int jj = 0; jj < 2; jj++)
+            for (int kk = 0; kk < 2; kk++)
+                atomicAdd(&pxx_gpu[get_idx(ix-ii, iy-jj, iz-kk, grd.nyn, grd.nzn)], weight[ii][jj][kk] * grd.invVOL);
+
+    
+    
+    ////////////////////////////
+    // add pressure pxy
+    for (int ii = 0; ii < 2; ii++)
+        for (int jj = 0; jj < 2; jj++)
+            for (int kk = 0; kk < 2; kk++)
+                temp[ii][jj][kk] = part->u[i] * part->v[i] * weight[ii][jj][kk];
+    for (int ii = 0; ii < 2; ii++)
+        for (int jj = 0; jj < 2; jj++)
+            for (int kk = 0; kk < 2; kk++)
+                atomicAdd(&pxy_gpu[get_idx(ix-ii, iy-jj, iz-kk, grd.nyn, grd.nzn)], weight[ii][jj][kk] * grd.invVOL);
+    
+    
+    
+    /////////////////////////////
+    // add pressure pxz
+    for (int ii = 0; ii < 2; ii++)
+        for (int jj = 0; jj < 2; jj++)
+            for (int kk = 0; kk < 2; kk++)
+                temp[ii][jj][kk] = part->u[i] * part->w[i] * weight[ii][jj][kk];
+    for (int ii = 0; ii < 2; ii++)
+        for (int jj = 0; jj < 2; jj++)
+            for (int kk = 0; kk < 2; kk++)
+                atomicAdd(&pxz_gpu[get_idx(ix-ii, iy-jj, iz-kk, grd.nyn, grd.nzn)], weight[ii][jj][kk] * grd.invVOL);
+    
+    
+    /////////////////////////////
+    // add pressure pyy
+    for (int ii = 0; ii < 2; ii++)
+        for (int jj = 0; jj < 2; jj++)
+            for (int kk = 0; kk < 2; kk++)
+                temp[ii][jj][kk] = part->v[i] * part->v[i] * weight[ii][jj][kk];
+    for (int ii = 0; ii < 2; ii++)
+        for (int jj = 0; jj < 2; jj++)
+            for (int kk = 0; kk < 2; kk++)
+                atomicAdd(&pyy_gpu[get_idx(ix-ii, iy-jj, iz-kk, grd.nyn, grd.nzn)], weight[ii][jj][kk] * grd.invVOL);
+    
+    
+    /////////////////////////////
+    // add pressure pyz
+    for (int ii = 0; ii < 2; ii++)
+        for (int jj = 0; jj < 2; jj++)
+            for (int kk = 0; kk < 2; kk++)
+                temp[ii][jj][kk] = part->v[i] * part->w[i] * weight[ii][jj][kk];
+    for (int ii = 0; ii < 2; ii++)
+        for (int jj = 0; jj < 2; jj++)
+            for (int kk = 0; kk < 2; kk++)
+                atomicAdd(&pyz_gpu[get_idx(ix-ii, iy-jj, iz-kk, grd.nyn, grd.nzn)], weight[ii][jj][kk] * grd.invVOL);
+    
+    
+    /////////////////////////////
+    // add pressure pzz
+    for (int ii = 0; ii < 2; ii++)
+        for (int jj = 0; jj < 2; jj++)
+            for (int kk = 0; kk < 2; kk++)
+                temp[ii][jj][kk] = part->w[i] * part->w[i] * weight[ii][jj][kk];
+    for (int ii=0; ii < 2; ii++)
+        for (int jj=0; jj < 2; jj++)
+            for(int kk=0; kk < 2; kk++)
+                atomicAdd(&pzz_gpu[get_idx(ix-ii, iy-jj, iz-kk, grd.nyn, grd.nzn)], weight[ii][jj][kk] * grd.invVOL);
+    
+}
+
+void interpP2G_gpu(struct particles* part , struct interpDensSpecies* ids, struct grid* grd, FPpart* part_x_gpu, 
+                    FPpart* part_y_gpu    , FPpart* part_z_gpu     , FPpart* part_u_gpu    , FPpart* part_v_gpu, 
+                    FPpart* part_w_gpu    , FPinterp *Jx_gpu       , FPinterp *Jy_gpu      , FPinterp *Jz_gpu  , 
+                    FPinterp *pxx_gpu     , FPinterp *pxy_gpu      , FPinterp *pxz_gpu     , FPinterp *pyy_gpu , 
+                    FPinterp *pyz_gpu     , FPinterp *pzz_gpu      , FPinterp *rhon_gpu    , FPinterp *rhoc_gpu, 
+                    FPfield* XN_flat_gpu  , FPfield* YN_flat_gpu,  , FPfield* ZN_flat_gpu  , int grd_size){
+
+    int n_particles = part->nop;
+
+    // Copy CPU arrays to GPU
+    cudaMemcpy(rhon_gpu, ids->rhon_flat, grd_size * sizeof(FPinterp), cudaMemcpyHostToDevice)
+    cudaMemcpy(rhoc_gpu, ids->rhoc_flat, grd_size * sizeof(FPinterp), cudaMemcpyHostToDevice)
+
+    cudaMemcpy(Jx_gpu, ids->Jx_flat, grd_size * sizeof(FPinterp), cudaMemcpyHostToDevice);
+    cudaMemcpy(Jy_gpu, ids->Jy_flat, grd_size * sizeof(FPinterp), cudaMemcpyHostToDevice);
+    cudaMemcpy(Jz_gpu, ids->Jz_flat, grd_size * sizeof(FPinterp), cudaMemcpyHostToDevice);
+
+    cudaMemcpy(pxx_gpu, ids->pxx_flat, grd_size * sizeof(FPinterp), cudaMemcpyHostToDevice);
+    cudaMemcpy(pxy_gpu, ids->pxy_flat, grd_size * sizeof(FPinterp), cudaMemcpyHostToDevice);
+    cudaMemcpy(pxz_gpu, ids->pxz_flat, grd_size * sizeof(FPinterp), cudaMemcpyHostToDevice);
+    cudaMemcpy(pyy_gpu, ids->pyy_flat, grd_size * sizeof(FPinterp), cudaMemcpyHostToDevice);
+    cudaMemcpy(pyz_gpu, ids->pyz_flat, grd_size * sizeof(FPinterp), cudaMemcpyHostToDevice);
+    cudaMemcpy(pzz_gpu, ids->pzz_flat, grd_size * sizeof(FPinterp), cudaMemcpyHostToDevice);
+
+    interpP2G_kernel<<<(n_particles+TPB-1)/TPB, TPB>>>(part_x_gpu  , part_y_gpu  , part_z_gpu  ,
+                                                       part_u_gpu  , part_v_gpu  , part_w_gpu  ,
+                                                       Jx_gpu      , Jy_gpu      , Jz_gpu      ,
+                                                       pxx_gpu     , pxy_gpu     , pxz_gpu     ,
+                                                       pyy_gpu     , pyz_gpu     , pzz_gpu     ,
+                                                       rhon_gpu    , rhoc_gpu    , XN_flat_gpu , 
+                                                       YN_flat_gpu , ZN_flat_gpu , part->nop   ,
+                                                       *grd);
+    cudaDeviceSynchronize();
+
+    // Copy GPU arrays back to CPU
+    cudaMemcpy(ids->rhon_flat, rhon_gpu, grd_size * sizeof(FPinterp), cudaMemcpyDeviceToHost)
+    cudaMemcpy(ids->rhoc_flat, rhoc_gpu, grd_size * sizeof(FPinterp), cudaMemcpyDeviceToHost)
+
+    cudaMemcpy(ids->Jx_flat, Jx_gpu, grd_size * sizeof(FPinterp), cudaMemcpyDeviceToHost);
+    cudaMemcpy(ids->Jy_flat, Jy_gpu, grd_size * sizeof(FPinterp), cudaMemcpyDeviceToHost);
+    cudaMemcpy(ids->Jz_flat, Jz_gpu, grd_size * sizeof(FPinterp), cudaMemcpyDeviceToHost);
+
+    cudaMemcpy(ids->pxx_flat, pxx_gpu, grd_size * sizeof(FPinterp), cudaMemcpyDeviceToHost);
+    cudaMemcpy(ids->pxy_flat, pxy_gpu, grd_size * sizeof(FPinterp), cudaMemcpyDeviceToHost);
+    cudaMemcpy(ids->pxz_flat, pxz_gpu, grd_size * sizeof(FPinterp), cudaMemcpyDeviceToHost);
+    cudaMemcpy(ids->pyy_flat, pyy_gpu, grd_size * sizeof(FPinterp), cudaMemcpyDeviceToHost);
+    cudaMemcpy(ids->pyz_flat, pyz_gpu, grd_size * sizeof(FPinterp), cudaMemcpyDeviceToHost);
+    cudaMemcpy(ids->pzz_flat, pzz_gpu, grd_size * sizeof(FPinterp), cudaMemcpyDeviceToHost);
 }
