@@ -822,8 +822,8 @@ void interpP2G_gpu(struct particles* part , struct interpDensSpecies* ids, struc
     cudaDeviceSynchronize();
 
     // Copy GPU arrays back to CPU
-    cudaMemcpy(ids->rhon_flat, rhon_gpu, grd_size * sizeof(FPinterp), cudaMemcpyDeviceToHost)
-    cudaMemcpy(ids->rhoc_flat, rhoc_gpu, grd_size * sizeof(FPinterp), cudaMemcpyDeviceToHost)
+    cudaMemcpy(ids->rhon_flat, rhon_gpu, grd_size * sizeof(FPinterp), cudaMemcpyDeviceToHost);
+    cudaMemcpy(ids->rhoc_flat, rhoc_gpu, grd_size * sizeof(FPinterp), cudaMemcpyDeviceToHost);
 
     cudaMemcpy(ids->Jx_flat, Jx_gpu, grd_size * sizeof(FPinterp), cudaMemcpyDeviceToHost);
     cudaMemcpy(ids->Jy_flat, Jy_gpu, grd_size * sizeof(FPinterp), cudaMemcpyDeviceToHost);
@@ -836,3 +836,4 @@ void interpP2G_gpu(struct particles* part , struct interpDensSpecies* ids, struc
     cudaMemcpy(ids->pyz_flat, pyz_gpu, grd_size * sizeof(FPinterp), cudaMemcpyDeviceToHost);
     cudaMemcpy(ids->pzz_flat, pzz_gpu, grd_size * sizeof(FPinterp), cudaMemcpyDeviceToHost);
 }
+

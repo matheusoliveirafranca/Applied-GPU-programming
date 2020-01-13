@@ -125,19 +125,19 @@ int main(int argc, char **argv){
     cudaMalloc(&YN_gpu, grd_size * sizeof(FPfield));
     cudaMalloc(&ZN_gpu, grd_size * sizeof(FPfield));
 
-    cudaMalloc(&rhon_gpu , grdSize * sizeof(FPinterp));
-    cudaMalloc(&rhoc_gpu , grdSize * sizeof(FPinterp));
+    cudaMalloc(&rhon_gpu , grd_size * sizeof(FPinterp));
+    cudaMalloc(&rhoc_gpu , grd_size * sizeof(FPinterp));
 
-    cudaMalloc(&Jx_gpu , grdSize * sizeof(FPinterp));
-    cudaMalloc(&Jy_gpu , grdSize * sizeof(FPinterp));
-    cudaMalloc(&Jz_gpu , grdSize * sizeof(FPinterp));
+    cudaMalloc(&Jx_gpu , grd_size * sizeof(FPinterp));
+    cudaMalloc(&Jy_gpu , grd_size * sizeof(FPinterp));
+    cudaMalloc(&Jz_gpu , grd_size * sizeof(FPinterp));
 
-    cudaMalloc(&pxx_gpu, grdSize * sizeof(FPinterp));
-    cudaMalloc(&pxy_gpu, grdSize * sizeof(FPinterp));
-    cudaMalloc(&pxz_gpu, grdSize * sizeof(FPinterp));
-    cudaMalloc(&pyy_gpu, grdSize * sizeof(FPinterp));
-    cudaMalloc(&pyz_gpu, grdSize * sizeof(FPinterp));
-    cudaMalloc(&pzz_gpu, grdSize * sizeof(FPinterp));
+    cudaMalloc(&pxx_gpu, grd_size * sizeof(FPinterp));
+    cudaMalloc(&pxy_gpu, grd_size * sizeof(FPinterp));
+    cudaMalloc(&pxz_gpu, grd_size * sizeof(FPinterp));
+    cudaMalloc(&pyy_gpu, grd_size * sizeof(FPinterp));
+    cudaMalloc(&pyz_gpu, grd_size * sizeof(FPinterp));
+    cudaMalloc(&pzz_gpu, grd_size * sizeof(FPinterp));
 
     // **********************************************************//
 
@@ -164,15 +164,14 @@ int main(int argc, char **argv){
         // **********************************************************//
 
         for (int is=0; is < param.ns; is++)
-            // mover_PC_cpu(&part[is],&field,&grd,&param);
-            mover_PC_gpu(&part[is] , &field     , &grd      , &param    , part_x_gpu, part_y_gpu, 
-                         part_z_gpu, part_u_gpu , part_v_gpu, part_w_gpu, Ex_gpu    , Ey_gpu    , 
-                         Ez_gpu    , Bxn_gpu    , Byn_gpu   , Bzn_gpu   , XN_gpu    , YN_gpu    , 
-                         ZN_gpu    , field_size , grd_size);
+            mover_PC_cpu(&part[is],&field,&grd,&param);
+            // mover_PC_gpu(&part[is] , &field     , &grd      , &param    , part_x_gpu, part_y_gpu, 
+            //              part_z_gpu, part_u_gpu , part_v_gpu, part_w_gpu, Ex_gpu    , Ey_gpu    , 
+            //              Ez_gpu    , Bxn_gpu    , Byn_gpu   , Bzn_gpu   , XN_gpu    , YN_gpu    , 
+            //              ZN_gpu    , field_size , grd_size);
             
         // **********************************************************//
         eMover += (cpuSecond() - iMover); // stop timer for mover
-        
         
         
         
@@ -180,12 +179,14 @@ int main(int argc, char **argv){
         iInterp = cpuSecond(); // start timer for the interpolation step
         // interpolate species
         for (int is=0; is < param.ns; is++)
-            // interpP2G_cpu(&part[is],&ids[is],&grd);
-            interpP2G_gpu(&part[is] , &ids[is]   , &grd       , part_x_gpu , part_y_gpu , part_z_gpu , 
-                         part_u_gpu , part_v_gpu , part_w_gpu , part_q_gpu , Jx_gpu     , Jy_gpu     , 
-                         Jz_gpu     , pxx_gpu    , pxy_gpu    , pxz_gpu    , pyy_gpu    , pyz_gpu    , 
-                         pzz_gpu    , rhon_gpu   , rhoc_gpu   , XN_flat_gpu, YN_flat_gpu, ZN_flat_gpu, 
-                         grd_size);
+            interpP2G_cpu(&part[is],&ids[is],&grd);
+            // interpP2G_gpu(&part[is] , &ids[is]   , &grd       , part_x_gpu , part_y_gpu , part_z_gpu , 
+            //              part_u_gpu , part_v_gpu , part_w_gpu , part_q_gpu , Jx_gpu     , Jy_gpu     , 
+            //              Jz_gpu     , pxx_gpu    , pxy_gpu    , pxz_gpu    , pyy_gpu    , pyz_gpu    , 
+            //              pzz_gpu    , rhon_gpu   , rhoc_gpu   , XN_gpu     , YN_gpu     , ZN_gpu     , 
+            //              grd_size);
+        
+
         // apply BC to interpolated densities
         for (int is=0; is < param.ns; is++)
             applyBCids(&ids[is],&grd,&param);
