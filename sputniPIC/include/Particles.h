@@ -10,6 +10,7 @@
 #include "EMfield.h"
 #include "InterpDensSpecies.h"
 
+
 struct particles {
     
     /** species ID: 0, 1, 2 , ... */
@@ -59,9 +60,23 @@ void particle_allocate(struct parameters*, struct particles*, int);
 void particle_deallocate(struct particles*);
 
 /** particle mover */
-int mover_PC(struct particles*, struct EMfield*, struct grid*, struct parameters*);
+int mover_PC_cpu(struct particles*, struct EMfield*, struct grid*, struct parameters*);
 
 /** Interpolation Particle --> Grid: This is for species */
-void interpP2G(struct particles*, struct interpDensSpecies*, struct grid*);
+void interpP2G_cpu(struct particles*, struct interpDensSpecies*, struct grid*);
+
+int mover_PC_gpu(struct particles* part, struct EMfield* field, struct grid* grd, struct parameters* param,
+                  FPpart* part_x_gpu  , FPpart* part_y_gpu     , FPpart* part_z_gpu     , FPpart* part_u_gpu   , 
+                  FPpart* part_v_gpu  , FPpart* part_w_gpu     , FPfield* Ex_flat_gpu   , FPfield* Ey_flat_gpu , 
+                  FPfield* Ez_flat_gpu, FPfield* Bxn_flat_gpu  , FPfield* Byn_flat_gpu  , FPfield* Bzn_flat_gpu, 
+                  FPfield* XN_flat_gpu, FPfield* YN_flat_gpu   , FPfield* ZN_flat_gpu   , int field_size    , int grd_size);
+
+void interpP2G_gpu(struct particles* part , struct interpDensSpecies* ids, struct grid* grd, FPpart* part_x_gpu  , 
+                    FPpart* part_y_gpu    , FPpart* part_z_gpu     , FPpart* part_u_gpu    , FPpart* part_v_gpu  , 
+                    FPpart* part_w_gpu    , FPinterp *part_q_gpu   , FPinterp *Jx_gpu      , FPinterp *Jy_gpu    , 
+                    FPinterp *Jz_gpu      , FPinterp *pxx_gpu      , FPinterp *pxy_gpu     , FPinterp *pxz_gpu   , 
+                    FPinterp *pyy_gpu     , FPinterp *pyz_gpu      , FPinterp *pzz_gpu     , FPinterp *rhon_gpu  , 
+                    FPfield* XN_flat_gpu   , FPfield* YN_flat_gpu  , FPfield* ZN_flat_gpu  , long grd_size);
+
 
 #endif

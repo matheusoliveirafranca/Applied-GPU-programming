@@ -95,7 +95,7 @@ int main(int argc, char **argv){
     //Grd vars
     FPfield *XN_gpu; FPfield *YN_gpu; FPfield *ZN_gpu;
     // is vars
-    FPinterp *rhon_gpu, *rhoc_gpu;
+    FPinterp *rhon_gpu;
     FPinterp *Jx_gpu , *Jy_gpu , *Jz_gpu;
     FPinterp *pxx_gpu, *pxy_gpu, *pxz_gpu;
     FPinterp *pyy_gpu, *pyz_gpu, *pzz_gpu;
@@ -126,7 +126,6 @@ int main(int argc, char **argv){
     cudaMalloc(&ZN_gpu, grd_size * sizeof(FPfield));
 
     cudaMalloc(&rhon_gpu , grd_size * sizeof(FPinterp));
-    cudaMalloc(&rhoc_gpu , grd_size * sizeof(FPinterp));
 
     cudaMalloc(&Jx_gpu , grd_size * sizeof(FPinterp));
     cudaMalloc(&Jy_gpu , grd_size * sizeof(FPinterp));
@@ -179,13 +178,11 @@ int main(int argc, char **argv){
         iInterp = cpuSecond(); // start timer for the interpolation step
         // interpolate species
         for (int is=0; is < param.ns; is++)
-            interpP2G_cpu(&part[is],&ids[is],&grd);
-            // interpP2G_gpu(&part[is] , &ids[is]   , &grd       , part_x_gpu , part_y_gpu , part_z_gpu , 
-            //              part_u_gpu , part_v_gpu , part_w_gpu , part_q_gpu , Jx_gpu     , Jy_gpu     , 
-            //              Jz_gpu     , pxx_gpu    , pxy_gpu    , pxz_gpu    , pyy_gpu    , pyz_gpu    , 
-            //              pzz_gpu    , rhon_gpu   , rhoc_gpu   , XN_gpu     , YN_gpu     , ZN_gpu     , 
-            //              grd_size);
-        
+            // interpP2G_cpu(&part[is],&ids[is],&grd);
+            interpP2G_gpu(&part[is] , &ids[is]   , &grd       , part_x_gpu , part_y_gpu , part_z_gpu , 
+                         part_u_gpu , part_v_gpu , part_w_gpu , part_q_gpu , Jx_gpu     , Jy_gpu     , 
+                         Jz_gpu     , pxx_gpu    , pxy_gpu    , pxz_gpu    , pyy_gpu    , pyz_gpu    , 
+                         pzz_gpu    , rhon_gpu   , XN_gpu     , YN_gpu     , ZN_gpu     , grd_size);
 
         // apply BC to interpolated densities
         for (int is=0; is < param.ns; is++)
@@ -204,8 +201,6 @@ int main(int argc, char **argv){
         }
         
         eInterp += (cpuSecond() - iInterp); // stop timer for interpolation
-        
-        
     
     }  // end of one PIC cycle
     
