@@ -5,9 +5,7 @@
 
 #include <iostream>
 
-
 #define TPB 32
-
 
 /** allocate particle arrays */
 void particle_allocate(struct parameters* param, struct particles* part, int is)
@@ -641,7 +639,6 @@ __global__ void interpP2G_kernel(FPpart* part_x_gpu   , FPpart* part_y_gpu   , F
     if (i >= nop) return;
 
     // arrays needed for interpolation
-
     FPpart weight[2][2][2];
     FPpart temp[2][2][2];
     FPpart xi[2], eta[2], zeta[2];
@@ -687,7 +684,6 @@ __global__ void interpP2G_kernel(FPpart* part_x_gpu   , FPpart* part_y_gpu   , F
         for (int jj = 0; jj < 2; jj++)
             for (int kk = 0; kk < 2; kk++)
                 atomicAdd(&Jx_gpu[get_idx(ix-ii, iy-jj, iz-kk, grd.nyn, grd.nzn)], temp[ii][jj][kk] * grd.invVOL);
-
     
     
     ////////////////////////////
@@ -749,6 +745,7 @@ __global__ void interpP2G_kernel(FPpart* part_x_gpu   , FPpart* part_y_gpu   , F
             for (int kk = 0; kk < 2; kk++)
                 atomicAdd(&pxz_gpu[get_idx(ix-ii, iy-jj, iz-kk, grd.nyn, grd.nzn)], temp[ii][jj][kk] * grd.invVOL);
     
+
     /////////////////////////////
     // add pressure pyy
     for (int ii = 0; ii < 2; ii++)
@@ -771,7 +768,6 @@ __global__ void interpP2G_kernel(FPpart* part_x_gpu   , FPpart* part_y_gpu   , F
         for (int jj = 0; jj < 2; jj++)
             for (int kk = 0; kk < 2; kk++)
                 atomicAdd(&pyz_gpu[get_idx(ix-ii, iy-jj, iz-kk, grd.nyn, grd.nzn)], temp[ii][jj][kk] * grd.invVOL);
-
     
     
     /////////////////////////////
@@ -784,7 +780,7 @@ __global__ void interpP2G_kernel(FPpart* part_x_gpu   , FPpart* part_y_gpu   , F
         for (int jj=0; jj < 2; jj++)
             for(int kk=0; kk < 2; kk++)
                 atomicAdd(&pzz_gpu[get_idx(ix-ii, iy-jj, iz-kk, grd.nyn, grd.nzn)], temp[ii][jj][kk] * grd.invVOL);
-
+ 
 }
 
 void interpP2G_gpu(struct particles* part , struct interpDensSpecies* ids, struct grid* grd, FPpart* part_x_gpu  , 
@@ -818,7 +814,6 @@ void interpP2G_gpu(struct particles* part , struct interpDensSpecies* ids, struc
                                                        pxy_gpu     , pxz_gpu     , pyy_gpu     , 
                                                        pyz_gpu     , pzz_gpu     , part->nop   , 
                                                        *grd);
-
     cudaDeviceSynchronize();
 
     // Copy GPU arrays back to CPU
