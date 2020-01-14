@@ -95,9 +95,7 @@ int main(int argc, char **argv){
     //Grd vars
     FPfield *XN_gpu; FPfield *YN_gpu; FPfield *ZN_gpu;
     // is vars
-
     FPinterp *rhon_gpu;
-
     FPinterp *Jx_gpu , *Jy_gpu , *Jz_gpu;
     FPinterp *pxx_gpu, *pxy_gpu, *pxz_gpu;
     FPinterp *pyy_gpu, *pyz_gpu, *pzz_gpu;
@@ -186,7 +184,6 @@ int main(int argc, char **argv){
             //              Jz_gpu     , pxx_gpu    , pxy_gpu    , pxz_gpu    , pyy_gpu    , pyz_gpu    , 
             //              pzz_gpu    , rhon_gpu   , XN_gpu     , YN_gpu     , ZN_gpu     , grd_size);
 
-
         // apply BC to interpolated densities
         for (int is=0; is < param.ns; is++)
             applyBCids(&ids[is],&grd,&param);
@@ -254,5 +251,4 @@ int main(int argc, char **argv){
     // exit
     return 0;
 }
-
 
