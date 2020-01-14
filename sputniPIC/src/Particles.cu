@@ -5,11 +5,9 @@
 
 #include <iostream>
 
-<<<<<<< HEAD
+
 #define TPB 32
-=======
-#define TPB 64
->>>>>>> f7456b0a0cb90232c63c8cfa4b1380a0c07d03b6
+
 
 /** allocate particle arrays */
 void particle_allocate(struct parameters* param, struct particles* part, int is)
@@ -93,7 +91,7 @@ __global__ void mover_PC_kernel(FPpart* part_x_gpu  , FPpart* part_y_gpu  , FPpa
     if (i >= nop) return;
 
     // auxiliary variables
-    FPpart omdtsq, denom, ut, vt, wt, udotb;<<<<<<< HEAD
+    FPpart omdtsq, denom, ut, vt, wt, udotb;
     
     // local (to the particle) electric and magnetic field
     FPfield Exl=0.0, Eyl=0.0, Ezl=0.0, Bxl=0.0, Byl=0.0, Bzl=0.0;
