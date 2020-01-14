@@ -5,7 +5,11 @@
 
 #include <iostream>
 
+<<<<<<< HEAD
 #define TPB 32
+=======
+#define TPB 64
+>>>>>>> f7456b0a0cb90232c63c8cfa4b1380a0c07d03b6
 
 /** allocate particle arrays */
 void particle_allocate(struct parameters* param, struct particles* part, int is)
@@ -89,7 +93,7 @@ __global__ void mover_PC_kernel(FPpart* part_x_gpu  , FPpart* part_y_gpu  , FPpa
     if (i >= nop) return;
 
     // auxiliary variables
-    FPpart omdtsq, denom, ut, vt, wt, udotb;
+    FPpart omdtsq, denom, ut, vt, wt, udotb;<<<<<<< HEAD
     
     // local (to the particle) electric and magnetic field
     FPfield Exl=0.0, Eyl=0.0, Ezl=0.0, Bxl=0.0, Byl=0.0, Bzl=0.0;
@@ -639,6 +643,7 @@ __global__ void interpP2G_kernel(FPpart* part_x_gpu   , FPpart* part_y_gpu   , F
     if (i >= nop) return;
 
     // arrays needed for interpolation
+
     FPpart weight[2][2][2];
     FPpart temp[2][2][2];
     FPpart xi[2], eta[2], zeta[2];
@@ -684,6 +689,7 @@ __global__ void interpP2G_kernel(FPpart* part_x_gpu   , FPpart* part_y_gpu   , F
         for (int jj = 0; jj < 2; jj++)
             for (int kk = 0; kk < 2; kk++)
                 atomicAdd(&Jx_gpu[get_idx(ix-ii, iy-jj, iz-kk, grd.nyn, grd.nzn)], temp[ii][jj][kk] * grd.invVOL);
+
     
     
     ////////////////////////////
@@ -745,7 +751,6 @@ __global__ void interpP2G_kernel(FPpart* part_x_gpu   , FPpart* part_y_gpu   , F
             for (int kk = 0; kk < 2; kk++)
                 atomicAdd(&pxz_gpu[get_idx(ix-ii, iy-jj, iz-kk, grd.nyn, grd.nzn)], temp[ii][jj][kk] * grd.invVOL);
     
-
     /////////////////////////////
     // add pressure pyy
     for (int ii = 0; ii < 2; ii++)
@@ -768,6 +773,7 @@ __global__ void interpP2G_kernel(FPpart* part_x_gpu   , FPpart* part_y_gpu   , F
         for (int jj = 0; jj < 2; jj++)
             for (int kk = 0; kk < 2; kk++)
                 atomicAdd(&pyz_gpu[get_idx(ix-ii, iy-jj, iz-kk, grd.nyn, grd.nzn)], temp[ii][jj][kk] * grd.invVOL);
+
     
     
     /////////////////////////////
@@ -780,7 +786,7 @@ __global__ void interpP2G_kernel(FPpart* part_x_gpu   , FPpart* part_y_gpu   , F
         for (int jj=0; jj < 2; jj++)
             for(int kk=0; kk < 2; kk++)
                 atomicAdd(&pzz_gpu[get_idx(ix-ii, iy-jj, iz-kk, grd.nyn, grd.nzn)], temp[ii][jj][kk] * grd.invVOL);
- 
+
 }
 
 void interpP2G_gpu(struct particles* part , struct interpDensSpecies* ids, struct grid* grd, FPpart* part_x_gpu  , 
@@ -814,6 +820,7 @@ void interpP2G_gpu(struct particles* part , struct interpDensSpecies* ids, struc
                                                        pxy_gpu     , pxz_gpu     , pyy_gpu     , 
                                                        pyz_gpu     , pzz_gpu     , part->nop   , 
                                                        *grd);
+
     cudaDeviceSynchronize();
 
     // Copy GPU arrays back to CPU
